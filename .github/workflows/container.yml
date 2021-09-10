@@ -1,11 +1,13 @@
 name: deploy-container
  
 on:
+  workflow_dispatch:
+ 
   push:
     branches:
-      - master
+      - main
     paths:
-      - "packages/container/**"
+      - 'packages/container/**'
  
 defaults:
   run:
@@ -20,17 +22,19 @@ jobs:
       - run: npm install
       - run: npm run build
         env:
-          PRODUCTION_DOMAIN: ${{ secrets.PRODUCTION_DOMAIN }}
+          PRODUCTION_DOMAIN: ${{secrets.PRODUCTION_DOMAIN}}
  
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
  
-      - name: Copy files to the production website with the AWS CLI
-        run: aws s3 sync dist s3://${{ secrets.AWS_S3_BUCKET_NAME }}/container/latest
-        
-      - name: create invalidation
-        run: aws cloudfront create-invalidadtion --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/container/latest/index.html"
+      - uses: ItsKarma/aws-cli@v1.70.0
+        with: 
+          args: s3 sync packages/container/dist s3://${{secrets.AWS_S3_BUCKET_NAME}}/container/latest
+        env:
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+ 
+      - uses: ItsKarma/aws-cli@v1.70.0
+        with: 
+          args: cloudfront create-invalidation --distribution-id ${{secrets.AWS_DISTRIBUTION_ID}} --paths "/container/latest/index.html"
+        env:
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
